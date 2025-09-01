@@ -206,7 +206,7 @@ module testbench;
 
         make_gap_between_tests ();
 
-        $display ("********** Fill the pipeline with a backpressure");
+        $display ("********** Fill the pipeline without a backpressure");
 
         if (arg_rdy !== 1'b1)
         begin
@@ -216,9 +216,24 @@ module testbench;
         end
 
         arg_vld <= '1;
-        res_rdy <= '0;
 
         for (int i = 0; i < many_cycles; i ++)
+        begin
+            if (arg_rdy)
+            begin
+                a <= $realtobits ( i     );
+                b <= $realtobits ( i + 1 );
+                c <= $realtobits ( i + 2 );
+            end
+
+            @ (posedge clk);
+        end
+
+        $display ("********** Apply backpressure");
+
+        res_rdy <= '0;
+
+        for (int i = many_cycles; i < 2 * many_cycles; i ++)
         begin
             if (arg_rdy)
             begin
