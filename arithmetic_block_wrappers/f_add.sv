@@ -11,11 +11,7 @@ module f_add (
 
     logic [          4:0] operation;
     logic [FMTBITS - 1:0] format;
-    logic [          4:0] flags;
     logic [          6:0] opcode;
-
-    // Don't account inexact results as errors (0.1 + 0.2 = 0.30000000000000004)
-    assign error = | flags[4:1];
 
     // Floating point opcode, for more info see The RISC-V Instruction Set Manual Volume I
     // Chapter 34. RV32/64G Instruction Set Listings | page 560
@@ -35,6 +31,10 @@ module f_add (
     logic              pre_down_valid;
     logic              pre_busy;
     logic              pre_error;
+    logic [       4:0] pre_flags;
+
+    // Don't account inexact results as errors (0.1 + 0.2 = 0.30000000000000004)
+    assign pre_error = | pre_flags[4:1];
 
     // verilator lint_off PINMISSING
     wally_fpu i_fpu (
