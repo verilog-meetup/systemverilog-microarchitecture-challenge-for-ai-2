@@ -41,19 +41,19 @@ module challenge
     the script "simulate". If the script outputs "FAIL" or does not output
     "PASS" from the code in the provided testbench.sv by running the
     provided script "simulate", your design is not working and is not an
-    answer to the challenge. Your design must be able to accept a new set of
-    the inputs (a, b and c) each clock cycle back-to-back and generate the
-    computation results without any stalls and without requiring empty cycle
-    gaps in the input. The solution code has to be synthesizable
-    SystemVerilog RTL. Your design cannot use more than 10 arithmetic blocks
-    from arithmetic_block_wrappers directory or more than 10000 D-flip-flops
-    or other state elements outside those arithmetic blocks. The solution
-    also cannot use any SRAM or other embedded memory blocks. A human should
-    not help AI by tipping anything on latencies or handshakes of the
-    submodules. The AI has to figure this out by itself by analyzing the
-    code in the repository directories. Likewise a human should not instruct
-    AI how to build a pipeline structure since it makes the exercise
-    meaningless.
+    answer to the challenge. When there is no backpressure, your design must
+    be able to accept a new set of the inputs (a, b and c) each clock cycle
+    back-to-back and generate the computation results without any stalls and
+    without requiring empty cycle gaps in the input. The solution code has
+    to be synthesizable SystemVerilog RTL. Your design cannot use more than
+    10 arithmetic blocks from arithmetic_block_wrappers directory or more
+    than 10000 D-flip-flops or other state elements outside those arithmetic
+    blocks. The solution also cannot use any SRAM or other embedded memory
+    blocks. A human should not help AI by tipping anything on latencies or
+    handshakes of the submodules. The AI has to figure this out by itself by
+    analyzing the code in the repository directories. Likewise a human
+    should not instruct AI how to build a pipeline structure since it makes
+    the exercise meaningless.
 
     */
 
