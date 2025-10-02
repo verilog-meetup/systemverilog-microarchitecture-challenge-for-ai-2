@@ -60,23 +60,28 @@ module challenge
     // Constant for 0.3 in IEEE 754 double precision
     localparam [FLEN-1:0] CONST_ZERO_DOT_THREE = 64'h3FD3333333333333;
 
-    // Output FIFO for backpressure handling (depth 64)
-    // Need margin for pipeline depth (16 cycles)
-    localparam FIFO_DEPTH = 64;
+    // Credit-based backpressure: track total in-flight transactions
+    // This modern approach is more efficient than the "almost full" method:
+    // - Smaller FIFO (32 vs 64): FIFO only needs to hold worst-case in-flight count
+    // - No premature stalls: accepts inputs as long as total capacity allows
+    // - Pipeline depth is 16 cycles (3+3+3+4+3 = mult_aa + mult_a2a2 + mult_a4a + add + sub)
     localparam PIPELINE_DEPTH = 16;
+    localparam FIFO_DEPTH = 32;  // Holds total in-flight (pipeline + buffered outputs)
+    localparam TOTAL_CAPACITY = FIFO_DEPTH;
+
     logic [FLEN-1:0] fifo [0:FIFO_DEPTH-1];
-    logic [6:0] fifo_wr_ptr, fifo_rd_ptr;
-    logic [6:0] fifo_count;
+    logic [5:0] fifo_wr_ptr, fifo_rd_ptr;
+    logic [5:0] fifo_count;  // Count of items in FIFO
+    logic [6:0] in_flight;   // Count of transactions in pipeline + FIFO
     logic internal_res_vld;
     logic [FLEN-1:0] internal_res;
 
-    logic fifo_full, fifo_empty;
+    logic fifo_empty;
     logic input_fire;
 
-    assign fifo_full = (fifo_count >= FIFO_DEPTH - PIPELINE_DEPTH);
-    assign fifo_empty = (fifo_count == 0);
     assign input_fire = arg_vld & arg_rdy;
-    assign arg_rdy = ~fifo_full;
+    assign fifo_empty = (fifo_count == 0);
+    assign arg_rdy = (in_flight < TOTAL_CAPACITY);
 
     // Pipeline Stage 1: Compute a*a and 0.3*b in parallel
     logic [FLEN-1:0] aa_res, b03_res;
@@ -216,13 +221,29 @@ module challenge
         .error()
     );
 
+    // Track total in-flight transactions (pipeline + FIFO combined)
+    always_ff @(posedge clk) begin
+        if (rst) begin
+            in_flight <= 0;
+        end else begin
+            case ({input_fire, res_rdy & ~fifo_empty})
+                2'b10: in_flight <= in_flight + 1;  // Input accepted
+                2'b01: in_flight <= in_flight - 1;  // Output consumed
+                default: in_flight <= in_flight;
+            endcase
+        end
+    end
+
     // FIFO write: when internal_res_vld is asserted
     always_ff @(posedge clk) begin
         if (rst) begin
             fifo_wr_ptr <= 0;
+            for (int i = 0; i < FIFO_DEPTH; i++) begin
+                fifo[i] <= '0;
+            end
         end else begin
             if (internal_res_vld) begin
-                fifo[fifo_wr_ptr[5:0]] <= internal_res;
+                fifo[fifo_wr_ptr[4:0]] <= internal_res;
                 fifo_wr_ptr <= fifo_wr_ptr + 1;
             end
         end
@@ -239,7 +260,7 @@ module challenge
         end
     end
 
-    // FIFO count
+    // FIFO count tracking
     always_ff @(posedge clk) begin
         if (rst) begin
             fifo_count <= 0;
@@ -252,7 +273,7 @@ module challenge
         end
     end
 
-    assign res = fifo[fifo_rd_ptr[5:0]];
+    assign res = fifo[fifo_rd_ptr[4:0]];
     assign res_vld = ~fifo_empty;
 
 endmodule
